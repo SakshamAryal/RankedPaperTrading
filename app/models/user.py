@@ -17,5 +17,5 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc)
     )
     hashed_password: Mapped[str] = mapped_column()
-    is_active: Mapped[bool] = mapped_column(default=True)
-    is_superuser: Mapped[bool] = mapped_column(default=False)
+    is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
+    is_superuser: Mapped[bool] = mapped_column(default=False, server_default="false")

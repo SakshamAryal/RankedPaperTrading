@@ -11,9 +11,9 @@ if TYPE_CHECKING:
     from app.models.trade import Trade
 
 class Stock(Base):
-    __table_args__ = {
-        UniqueConstraint("portfolio_id", "name", name="unique_portfolio_name_and_stock_name"),
-    }
+    __table_args__ = (
+        UniqueConstraint("portfolio_id", "symbol", name="unique_portfolio_name_and_stock_name"),
+    )
     symbol: Mapped[str] = mapped_column()
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 6))
     avg_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))

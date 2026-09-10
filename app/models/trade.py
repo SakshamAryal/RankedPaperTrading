@@ -20,5 +20,5 @@ class Trade(Base):
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc)
     )
-    stock: Mapped["Stock"] = relationship("stock", back_populates="trades")
+    stock: Mapped["Stock"] = relationship("Stock", back_populates="trades")
     stock_id: Mapped[int] = mapped_column(ForeignKey("stock.id"))
