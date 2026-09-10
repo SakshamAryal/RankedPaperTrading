@@ -11,8 +11,6 @@ if TYPE_CHECKING:
     from app.models.stock import Stock
 
 class Trade(Base):
-    __tablename__ = "trade"
-    id: Mapped[int] = mapped_column(primary_key=True)
     symbol: Mapped[str] = mapped_column()
     type: Mapped[str] = mapped_column(
         CheckConstraint("type IN ('buy', 'sell')")
@@ -23,4 +21,4 @@ class Trade(Base):
         default=lambda: datetime.now(timezone.utc)
     )
     stock: Mapped["Stock"] = relationship("stock", back_populates="trades")
-    stock_id: Mapped[int] = mapped_column(ForeignKey("Stock.id"))
+    stock_id: Mapped[int] = mapped_column(ForeignKey("stock.id"))

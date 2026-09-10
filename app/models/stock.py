@@ -1,4 +1,4 @@
-from sqlalchemy import Numeric
+from sqlalchemy import Numeric, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from typing import TYPE_CHECKING
 from app.models import Base
@@ -11,8 +11,9 @@ if TYPE_CHECKING:
     from app.models.trade import Trade
 
 class Stock(Base):
-    __tablename__ = "stock"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    __table_args__ = {
+        UniqueConstraint("portfolio_id", "name", name="unique_portfolio_name_and_stock_name"),
+    }
     symbol: Mapped[str] = mapped_column()
     quantity: Mapped[Decimal] = mapped_column(Numeric(10, 6))
     avg_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
