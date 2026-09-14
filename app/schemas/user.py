@@ -14,8 +14,7 @@ class UserCreate(User):
 
 class UserResponse(User):
     cash_balance: Decimal = Field(max_digits=10, decimal_places=2)
-    portfolio: list[PortfolioResponse]
-
+    portfolio: list[PortfolioResponse] | None = None
     model_config = ConfigDict(from_attributes=True)
 
 
