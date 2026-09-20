@@ -13,7 +13,6 @@ class StockTrade(Stock):
 
 class StockResponse(Stock):
     avg_price: Decimal
-
     model_config = ConfigDict(from_attributes=True)
 
 class StockTradeResponse(Stock):
