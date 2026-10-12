@@ -17,3 +17,5 @@ pwdlib[argon2]
 python-jose
 
 pydantic[email]
+
+yfinance

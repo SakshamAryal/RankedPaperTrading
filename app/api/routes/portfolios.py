@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.user_dependency import get_current_user
 from app.dependencies.db_dependency import get_db
-from app.schemas.portfolio import PortfolioCreate, PortfolioResponse, FundsTransfer
+from app.schemas.portfolio import PortfolioCreate, PortfolioResponse
 from app.models.user import User
 from app.models.portfolio import Portfolio
 
