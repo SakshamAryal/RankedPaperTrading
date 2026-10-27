@@ -22,7 +22,7 @@ auth = APIRouter(
 
 
 @auth.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> Token:
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)) -> Token:
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
@@ -37,7 +37,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @auth.post("/refresh", response_model=Token)
-async def refresh_token(token: str = Body(...), db: Session = Depends(get_db)):
+def refresh_token(token: str = Body(...), db: Session = Depends(get_db)):
     try:
         # check for the correct type of token
         payload = decode_token(token)
@@ -78,6 +78,6 @@ async def refresh_token(token: str = Body(...), db: Session = Depends(get_db)):
 
 
 @auth.post("/logout")
-async def logout(token: str = Body(...), db: Session = Depends(get_db)):
+def logout(token: str = Body(...), db: Session = Depends(get_db)):
     revoke_refresh_token(token, db)
     return {"message": "Successfully logged out"}

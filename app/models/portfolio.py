@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from app.models.base import Base
 from sqlalchemy.orm import relationship, mapped_column, Mapped
-from sqlalchemy import ForeignKey, Numeric, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, Numeric, text
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -11,11 +11,13 @@ if TYPE_CHECKING:
 
 class Portfolio(Base):
     __table_args__ = (
-        UniqueConstraint("user_id", "name", name="unique_portfolio_name"),
+        # names are unique per user among active portfolios, so a deleted portfolio's name can be reused
+        Index("unique_active_portfolio_name", "user_id", "name", unique=True, postgresql_where=text("is_active")),
     )
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str] = mapped_column()
     cash_balance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     total_balance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
+    net_deposited: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc)
     )

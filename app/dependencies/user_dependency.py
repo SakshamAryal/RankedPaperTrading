@@ -13,6 +13,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     try:
         payload = decode_token(token)
         user_id = payload.get("sub")
+        if payload.get("token_type") != "access":
+            raise HTTPException(status_code=401, detail="Invalid token")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Could not validate credentials")
         user = db.query(User).filter(User.id == int(user_id)).first()
