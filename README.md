@@ -2,6 +2,8 @@
 
 A multi-user paper-trading REST API. Each user starts with $10,000 of virtual cash, splits it across portfolios, and buys and sells real stocks at live market prices — no real money involved.
 
+**Live API:** https://rankedpapertrading.onrender.com — try it from the interactive docs at [/docs](https://rankedpapertrading.onrender.com/docs).
+
 ## Features
 
 - **Auth** — signup, login, short-lived JWT access tokens and 7-day refresh tokens. Refresh tokens are stored server-side, rotated on every refresh and revoked on logout; a refresh token can't be used to call protected routes.
@@ -17,6 +19,7 @@ A multi-user paper-trading REST API. Each user starts with $10,000 of virtual ca
 - **yfinance** for market prices
 - **python-jose** for JWTs, **pwdlib** (argon2) for password hashing
 - **Pydantic** for request validation
+- Hosted on **Render**
 
 ## Running locally
 
@@ -77,14 +80,20 @@ Interactive API docs are at http://127.0.0.1:8000/docs.
 
 ## Example requests
 
-Sign up and log in:
+These run against the live API. To use a local server instead, set `BASE_URL=http://127.0.0.1:8000`.
 
 ```bash
-curl -X POST http://127.0.0.1:8000/users \
+BASE_URL=https://rankedpapertrading.onrender.com
+```
+
+Sign up and log in. Usernames are shared on the live API, so pick your own instead of `alice`:
+
+```bash
+curl -X POST $BASE_URL/users \
   -H "Content-Type: application/json" \
   -d '{"username": "alice", "email": "alice@example.com", "password": "password123"}'
 
-curl -X POST http://127.0.0.1:8000/auth/token \
+curl -X POST $BASE_URL/auth/token \
   -d "username=alice&password=password123"
 ```
 
@@ -97,7 +106,7 @@ TOKEN=<access_token>
 Create a portfolio with $2,000:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/portfolios \
+curl -X POST $BASE_URL/portfolios \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "Tech", "cash_balance": "2000"}'
@@ -106,12 +115,12 @@ curl -X POST http://127.0.0.1:8000/portfolios \
 Buy $500 of Apple, then sell 1 share (use the `id` from the create response):
 
 ```bash
-curl -X POST http://127.0.0.1:8000/portfolios/1/trades \
+curl -X POST $BASE_URL/portfolios/1/trades \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"symbol": "AAPL", "type": "buy", "amount": "500"}'
 
-curl -X POST http://127.0.0.1:8000/portfolios/1/trades \
+curl -X POST $BASE_URL/portfolios/1/trades \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"symbol": "AAPL", "type": "sell", "quantity": "1"}'
@@ -120,7 +129,7 @@ curl -X POST http://127.0.0.1:8000/portfolios/1/trades \
 Look up a price:
 
 ```bash
-curl http://127.0.0.1:8000/stocks/MSFT
+curl $BASE_URL/stocks/MSFT
 ```
 
 ## Future work
@@ -131,4 +140,4 @@ curl http://127.0.0.1:8000/stocks/MSFT
 - **Live portfolio value** — keep each portfolio's total value up to date as prices move.
 - **Tests** — a pytest suite for the money rules, auth and ownership checks, plus row locking for simultaneous trades.
 - **Docker Compose** — run the API, Postgres and Redis with one command.
-- **Deployment** and a **Discord bot** for trading from chat.
+- **Discord bot** for trading from chat.
