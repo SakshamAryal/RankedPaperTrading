@@ -34,5 +34,5 @@ def build_portfolio_response(portfolio: Portfolio, db: Session) -> PortfolioResp
         **PortfolioStored.model_validate(portfolio).model_dump(),
         total_balance= total_value,
         stocks=holdings,
-        return_percent= (((total_value - portfolio.net_deposited)/portfolio.net_deposited)*100).quantize(Decimal(CENT), ROUND_HALF_UP),
+        return_percent= (((total_value - portfolio.net_deposited)/max(0.01,portfolio.net_deposited))*100).quantize(CENT, ROUND_HALF_UP),
     )

@@ -57,7 +57,7 @@ def create_portfolio(new_portfolio: PortfolioCreate, user: User = Depends(get_cu
     user.cash_balance -= new_portfolio.cash_balance
     commit_or_409(db)
     db.refresh(portfolio)
-    return portfolio
+    return build_portfolio_response(portfolio, db)
 
 
 @portfolios.get("/{portfolio_id}", response_model=PortfolioResponse, status_code=200)
@@ -73,7 +73,7 @@ def rename_portfolio(change: PortfolioChangeName, portfolio: Portfolio = Depends
         portfolio.name = change.name
         commit_or_409(db)
         db.refresh(portfolio)
-    return portfolio
+    return build_portfolio_response(portfolio, db)
 
 
 @portfolios.post("/{portfolio_id}/deposit", response_model=PortfolioResponse, status_code=200)
@@ -87,7 +87,7 @@ def deposit_cash(transfer: FundsTransfer, portfolio: Portfolio = Depends(get_own
     user.cash_balance -= transfer.amount
     db.commit()
     db.refresh(portfolio)
-    return portfolio
+    return build_portfolio_response(portfolio, db)
 
 
 @portfolios.post("/{portfolio_id}/withdraw", response_model=PortfolioResponse, status_code=200)
@@ -101,7 +101,7 @@ def withdraw_cash(transfer: FundsTransfer, portfolio: Portfolio = Depends(get_ow
     user.cash_balance += transfer.amount
     db.commit()
     db.refresh(portfolio)
-    return portfolio
+    return build_portfolio_response(portfolio, db)
 
 
 @portfolios.delete("/{portfolio_id}", status_code=204)
