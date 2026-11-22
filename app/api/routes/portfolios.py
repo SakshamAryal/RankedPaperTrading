@@ -8,6 +8,7 @@ from app.dependencies.portfolio_dependency import get_owned_portfolio
 from app.schemas.portfolio import PortfolioCreate, PortfolioResponse, PortfolioChangeName, FundsTransfer
 from app.models.user import User
 from app.models.portfolio import Portfolio
+from app.services.valuation import build_portfolio_response
 
 portfolios = APIRouter(
     prefix="/portfolios",
@@ -33,7 +34,10 @@ def commit_or_409(db: Session) -> None:
 
 @portfolios.get("", response_model=list[PortfolioResponse], status_code=200)
 def get_portfolios(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Portfolio).filter(Portfolio.user_id == user.id, Portfolio.is_active == True).all()
+    portfolios = db.query(Portfolio).filter(Portfolio.user_id == user.id, Portfolio.is_active == True).all()
+
+    return [build_portfolio_response(p, db) for p in portfolios]
+
 
 
 @portfolios.post("", response_model=PortfolioResponse, status_code=201)
@@ -57,8 +61,8 @@ def create_portfolio(new_portfolio: PortfolioCreate, user: User = Depends(get_cu
 
 
 @portfolios.get("/{portfolio_id}", response_model=PortfolioResponse, status_code=200)
-def get_portfolio(portfolio: Portfolio = Depends(get_owned_portfolio)):
-    return portfolio
+def get_portfolio(portfolio: Portfolio = Depends(get_owned_portfolio), db: Session = Depends(get_db)):
+    return build_portfolio_response(portfolio, db)
 
 
 @portfolios.patch("/{portfolio_id}", response_model=PortfolioResponse, status_code=200)
