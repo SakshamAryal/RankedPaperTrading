@@ -8,7 +8,7 @@ class StockPriceResponse(BaseModel):
     current_price: Decimal
     last_updated: datetime
 
-class Stock(BaseModel):
+class Stock(StockPriceResponse):
     symbol: str
     quantity: Decimal
 
