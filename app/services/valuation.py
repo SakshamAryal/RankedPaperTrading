@@ -2,7 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm import Session
 
-from app.models import Portfolio, User
+from app.models import Portfolio
 from app.schemas.portfolio import PortfolioStored, PortfolioResponse
 from app.schemas.stock import HoldingResponse, StockResponse
 from app.utils.price import get_current_price
@@ -29,8 +29,10 @@ def build_portfolio_response(portfolio: Portfolio, db: Session) -> PortfolioResp
         for stock in portfolio.stocks
         if stock.quantity > 0
     ]
+    total_value = portfolio.cash_balance + sum(h.market_value for h in holdings)
     return PortfolioResponse(
         **PortfolioStored.model_validate(portfolio).model_dump(),
-        total_balance=portfolio.cash_balance + sum(h.market_value for h in holdings),
+        total_balance= total_value,
         stocks=holdings,
+        return_percent= Decimal(((total_value - portfolio.net_deposited)/portfolio.net_deposited)).quantize(Decimal("0.01"), ROUND_HALF_UP),
     )
