@@ -24,7 +24,7 @@ class PortfolioStored(Portfolio):
 class PortfolioResponse(PortfolioStored):
     total_balance: Decimal = Field(max_digits=10, decimal_places=2, ge=0.00)
     stocks: list[HoldingResponse]
-    return_percent: Decimal
+    return_percent: Decimal | None = None
 
 class PortfolioChangeName(BaseModel):
     name: str = Field(min_length=3, max_length=50)

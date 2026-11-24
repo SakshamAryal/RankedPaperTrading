@@ -30,9 +30,14 @@ def build_portfolio_response(portfolio: Portfolio, db: Session) -> PortfolioResp
         if stock.quantity > 0
     ]
     total_value = portfolio.cash_balance + sum(h.market_value for h in holdings)
+    if portfolio.net_deposited <= 0:
+        return_percent = None
+    else:
+        return_percent = ((((total_value - portfolio.net_deposited) / portfolio.net_deposited) * 100)
+                          .quantize(CENT,ROUND_HALF_UP))
     return PortfolioResponse(
         **PortfolioStored.model_validate(portfolio).model_dump(),
         total_balance= total_value,
         stocks=holdings,
-        return_percent= (((total_value - portfolio.net_deposited)/max(0.01,portfolio.net_deposited))*100).quantize(CENT, ROUND_HALF_UP),
+        return_percent = return_percent,
     )
