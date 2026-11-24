@@ -16,5 +16,9 @@ class StockResponse(Stock):
     avg_price: Decimal
     model_config = ConfigDict(from_attributes=True)
 
+class HoldingResponse(StockResponse):
+    current_price: Decimal
+    market_value: Decimal
+
 class StockTradeResponse(Stock):
     trades: list[TradeResponse]
