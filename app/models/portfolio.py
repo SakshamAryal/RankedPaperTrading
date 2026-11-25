@@ -16,11 +16,11 @@ class Portfolio(Base):
     )
     name: Mapped[str] = mapped_column()
     cash_balance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
-    total_balance: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)
     net_deposited: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(timezone.utc)
     )
+    units: Mapped[Decimal] = mapped_column(Numeric(20, 8), default=0, nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     user: Mapped["User"] = relationship("User", back_populates="portfolios")
     stocks: Mapped[list["Stock"]] = relationship("Stock", back_populates="portfolio")
