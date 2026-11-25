@@ -8,7 +8,7 @@ from app.dependencies.portfolio_dependency import get_owned_portfolio
 from app.schemas.portfolio import PortfolioCreate, PortfolioResponse, PortfolioChangeName, FundsTransfer
 from app.models.user import User
 from app.models.portfolio import Portfolio
-from app.services.valuation import build_portfolio_response
+from app.services.valuation import build_portfolio_response, get_prices, get_unit_price
 
 portfolios = APIRouter(
     prefix="/portfolios",
@@ -35,8 +35,7 @@ def commit_or_409(db: Session) -> None:
 @portfolios.get("", response_model=list[PortfolioResponse], status_code=200)
 def get_portfolios(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     portfolios = db.query(Portfolio).filter(Portfolio.user_id == user.id, Portfolio.is_active == True).all()
-
-    return [build_portfolio_response(p, db) for p in portfolios]
+    return [build_portfolio_response(p, get_prices(p, db)) for p in portfolios]
 
 
 
@@ -50,19 +49,21 @@ def create_portfolio(new_portfolio: PortfolioCreate, user: User = Depends(get_cu
         name=new_portfolio.name,
         user_id=user.id,
         cash_balance=new_portfolio.cash_balance,
-        total_balance=new_portfolio.cash_balance,
         net_deposited=new_portfolio.cash_balance,
+        units=new_portfolio.cash_balance,
     )
     db.add(portfolio)
     user.cash_balance -= new_portfolio.cash_balance
     commit_or_409(db)
     db.refresh(portfolio)
-    return build_portfolio_response(portfolio, db)
+    prices = get_prices(portfolio, db)
+    return build_portfolio_response(portfolio, prices)
 
 
 @portfolios.get("/{portfolio_id}", response_model=PortfolioResponse, status_code=200)
 def get_portfolio(portfolio: Portfolio = Depends(get_owned_portfolio), db: Session = Depends(get_db)):
-    return build_portfolio_response(portfolio, db)
+    prices = get_prices(portfolio, db)
+    return build_portfolio_response(portfolio, prices)
 
 
 @portfolios.patch("/{portfolio_id}", response_model=PortfolioResponse, status_code=200)
@@ -73,7 +74,8 @@ def rename_portfolio(change: PortfolioChangeName, portfolio: Portfolio = Depends
         portfolio.name = change.name
         commit_or_409(db)
         db.refresh(portfolio)
-    return build_portfolio_response(portfolio, db)
+    prices = get_prices(portfolio, db)
+    return build_portfolio_response(portfolio, prices)
 
 
 @portfolios.post("/{portfolio_id}/deposit", response_model=PortfolioResponse, status_code=200)
@@ -81,13 +83,15 @@ def deposit_cash(transfer: FundsTransfer, portfolio: Portfolio = Depends(get_own
                  user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.cash_balance - transfer.amount < 0:
         raise HTTPException(status_code=400, detail="Insufficient funds.")
+    prices = get_prices(portfolio, db)
+    unit_price = get_unit_price(portfolio, prices)
     portfolio.cash_balance += transfer.amount
-    portfolio.total_balance += transfer.amount
     portfolio.net_deposited += transfer.amount
+    portfolio.units += transfer.amount/unit_price if unit_price > 0 else transfer.amount
     user.cash_balance -= transfer.amount
     db.commit()
     db.refresh(portfolio)
-    return build_portfolio_response(portfolio, db)
+    return build_portfolio_response(portfolio, prices)
 
 
 @portfolios.post("/{portfolio_id}/withdraw", response_model=PortfolioResponse, status_code=200)
@@ -95,18 +99,20 @@ def withdraw_cash(transfer: FundsTransfer, portfolio: Portfolio = Depends(get_ow
                   user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if portfolio.cash_balance - transfer.amount < 0:
         raise HTTPException(status_code=400, detail="Insufficient funds.")
+    prices = get_prices(portfolio, db)
+    unit_price = get_unit_price(portfolio, prices)
     portfolio.cash_balance -= transfer.amount
-    portfolio.total_balance -= transfer.amount
     portfolio.net_deposited -= transfer.amount
+    portfolio.units -= transfer.amount/unit_price
     user.cash_balance += transfer.amount
     db.commit()
     db.refresh(portfolio)
-    return build_portfolio_response(portfolio, db)
+    return build_portfolio_response(portfolio, prices)
 
 
 @portfolios.delete("/{portfolio_id}", status_code=204)
 def delete_portfolio(portfolio: Portfolio = Depends(get_owned_portfolio), db: Session = Depends(get_db)):
-    if portfolio.total_balance > 0:
+    if portfolio.cash_balance > 0 or any(s.quantity > 0 for s in portfolio.stocks):
         raise HTTPException(status_code=400, detail="Can't delete portfolio with funds in it.")
     portfolio.is_active = False
     db.commit()

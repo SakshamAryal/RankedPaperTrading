@@ -18,9 +18,32 @@ def get_prices(portfolio: Portfolio, db: Session) -> dict[str, Decimal]:
 
 CENT = Decimal("0.01")
 
-def build_portfolio_response(portfolio: Portfolio, db: Session) -> PortfolioResponse:
-    prices = get_prices(portfolio, db)
-    holdings = [
+def build_portfolio_response(portfolio: Portfolio, prices: dict[str, Decimal]) -> PortfolioResponse:
+    holdings = get_holdings(portfolio, prices)
+    unit_price = get_unit_price(portfolio, prices)
+    return PortfolioResponse(
+        **PortfolioStored.model_validate(portfolio).model_dump(),
+        total_balance= get_current_value(portfolio, prices),
+        stocks=holdings,
+        return_percent = ((unit_price - 1) *100).quantize(CENT, ROUND_HALF_UP) if portfolio.units > 0 else None,
+    )
+
+def get_current_value(portfolio: Portfolio, prices: dict[str, Decimal]) -> Decimal:
+    stock_price = 0
+    for stock in portfolio.stocks:
+        if stock.quantity > 0:
+            stock_price += prices[stock.symbol] * stock.quantity
+    return (portfolio.cash_balance + stock_price).quantize(CENT, ROUND_HALF_UP)
+
+def get_unit_price(portfolio: Portfolio, prices: dict[str, Decimal]) -> Decimal:
+    total_value = get_current_value(portfolio, prices)
+    if portfolio.units <= 0:
+        return Decimal(1)
+    unit_price = total_value / portfolio.units
+    return unit_price
+
+def get_holdings(portfolio: Portfolio, prices:dict[str, Decimal]) -> list[HoldingResponse]:
+    return [
         HoldingResponse(
             **StockResponse.model_validate(stock).model_dump(),
             current_price=prices[stock.symbol],
@@ -29,15 +52,3 @@ def build_portfolio_response(portfolio: Portfolio, db: Session) -> PortfolioResp
         for stock in portfolio.stocks
         if stock.quantity > 0
     ]
-    total_value = portfolio.cash_balance + sum(h.market_value for h in holdings)
-    if portfolio.net_deposited <= 0:
-        return_percent = None
-    else:
-        return_percent = ((((total_value - portfolio.net_deposited) / portfolio.net_deposited) * 100)
-                          .quantize(CENT,ROUND_HALF_UP))
-    return PortfolioResponse(
-        **PortfolioStored.model_validate(portfolio).model_dump(),
-        total_balance= total_value,
-        stocks=holdings,
-        return_percent = return_percent,
-    )
