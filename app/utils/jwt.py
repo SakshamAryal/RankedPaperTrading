@@ -3,6 +3,7 @@ from typing import Optional
 
 from jose import jwt
 from sqlalchemy.orm import Session
+import uuid
 
 from app.config import settings
 from app.models.refresh_token import RefreshToken
@@ -23,7 +24,8 @@ def create_refresh_token(subject: int, db: Session) -> str:
     to_encode = {
         "sub": str(subject),
         "exp": expires_at,
-        "token_type": "refresh"
+        "token_type": "refresh",
+        "jti": str(uuid.uuid4())
     }
     refresh_token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     stored_token = RefreshToken(
