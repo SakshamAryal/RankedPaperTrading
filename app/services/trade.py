@@ -10,13 +10,13 @@ from app.models.trade import Trade
 from app.schemas.trade import TradeCreate
 from app.utils.price import get_current_price
 from app.models import StockPrice
-from app.utils.market_hours import is_open
+from app.utils.market_hours import get_market_state
 
 
 def execute_trade(portfolio: Portfolio, trade: TradeCreate, db: Session) -> Trade:
     symbol = trade.symbol.upper()
 
-    market_status = is_open(symbol)
+    market_status = get_market_state(symbol)
     if market_status != "REGULAR":
         raise HTTPException(status_code=409, detail=f"Market closed for {symbol}")
 

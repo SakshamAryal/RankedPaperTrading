@@ -1,14 +1,15 @@
+from typing import Any
 import yfinance as yf
 from fastapi import HTTPException
 from yfinance.exceptions import YFRateLimitError, YFTickerMissingError
 
 
-def is_open(symbol: str)->  str:
-    info = valid_symbol(symbol)
-    market_state = info["marketState"]
+def get_market_state(symbol: str)->  str | None:
+    info = get_symbol_info(symbol)
+    market_state = info.get("marketState")
     return market_state
 
-def valid_symbol(symbol: str) -> dict[str, str]:
+def get_symbol_info(symbol: str) -> dict[str, Any]:
     try:
         info = yf.Ticker(symbol).info
     except YFRateLimitError:
