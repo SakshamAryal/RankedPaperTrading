@@ -9,12 +9,17 @@ from app.models.stock import Stock
 from app.models.trade import Trade
 from app.schemas.trade import TradeCreate
 from app.utils.price import get_current_price
-from models import StockPrice
-from utils.market_hours import is_open
+from app.models import StockPrice
+from app.utils.market_hours import is_open
 
 
 def execute_trade(portfolio: Portfolio, trade: TradeCreate, db: Session) -> Trade:
     symbol = trade.symbol.upper()
+
+    market_status = is_open(symbol)
+    if market_status != "REGULAR":
+        raise HTTPException(status_code=409, detail=f"Market closed for {symbol}")
+
     stock_price = get_current_price(symbol, db)
     quantity = get_quantity(trade, stock_price)
     stock = db.query(Stock).filter(Stock.portfolio_id == portfolio.id, Stock.symbol == symbol).first()
@@ -31,26 +36,26 @@ def execute_trade(portfolio: Portfolio, trade: TradeCreate, db: Session) -> Trad
     db.refresh(new_trade)
     return new_trade
 
-
 def buy(stock: Optional[Stock], stock_price: StockPrice, quantity: Decimal, portfolio: Portfolio) -> Stock:
     cash_value = get_cash_value(quantity, stock_price.current_price)
     if portfolio.cash_balance < cash_value:
         raise HTTPException(status_code=400, detail="Insufficient funds.")
-    if stock:
-        new_quantity = stock.quantity + quantity
-        stock.avg_price = ((((stock.avg_price * stock.quantity) + cash_value) / new_quantity)
-                           .quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-        stock.quantity = new_quantity
-    else:
-        stock = Stock(symbol=stock_price.symbol, quantity=quantity, avg_price=stock_price.current_price,
+
+    if not stock:
+        stock = Stock(symbol=stock_price.symbol, quantity=Decimal(0), avg_price=stock_price.current_price,
                       portfolio_id=portfolio.id)
-        portfolio.stocks.append(stock) # added stock to the session via portfolio relationship
+        portfolio.stocks.append(stock)
+
+    new_quantity = stock.quantity + quantity
+    stock.avg_price = ((((stock.avg_price * stock.quantity) + cash_value) / new_quantity)
+                       .quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+    stock.quantity = new_quantity
     portfolio.cash_balance -= cash_value
     return stock
 
 
 def sell(stock: Optional[Stock], stock_price: StockPrice, quantity: Decimal, portfolio: Portfolio):
-
     if not stock or stock.quantity < quantity:
         raise HTTPException(status_code=400, detail="Insufficient shares.")
     stock.quantity -= quantity
@@ -68,3 +73,4 @@ def get_quantity(trade: TradeCreate, stock_price: StockPrice) -> Decimal:
         quantity = (trade.amount / stock_price.current_price).quantize(Decimal("0.000001"), rounding=ROUND_DOWN)
         if quantity <= 0:
             raise HTTPException(status_code=400, detail="Amount too small to trade any shares.")
+    return quantity
